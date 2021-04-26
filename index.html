@@ -19,6 +19,8 @@
   today.setUTCSeconds(0);
   today.setUTCMilliseconds(0);
   today = today.getTime();
+  var line = "";
+  var d;
 
   var chart = Highcharts.ganttChart("container", {
     rangeSelector: {
@@ -29,29 +31,21 @@
         y: 0,
       },
       dropdown: "never",
-      // floating: true,
       inputEnabled: false,
-      // buttons: [{
-      //     text: '+',
-      //     events: {
-      //         click: (e) => {
-      //             console.log(this);
-      //             return false
-      //         }
-      //     }
-      // }, {
-      //     text: '-',
-      //     events: {
-      //         click: () => {
-      //             return false
-      //         }
-      //     }
-
-      // }]
     },
     chart: {
       spacingLeft: 1,
+      zoomType: "x",
+      panning: true,
+      panKey: "shift",
+      // backgroundColor: 'white',
+      events: {
+        load: function () {
+          // Draw the flow chart
+        },
+      },
     },
+
     title: {
       text: "Gantt Project Management",
     },
@@ -78,6 +72,59 @@
           },
         },
         allowPointSelect: true,
+        point: {
+          events: {
+            select: function (event) {
+              console.log("select", event);
+              chart.renderer
+                .image(
+                  "https://www.highcharts.com/samples/graphics/sun.png",
+                  event.target.plotX,
+                  event.target.plotY,
+                  // 733,
+                  // 175,
+                  20,
+                  20
+                )
+                .add()
+                .on("click", function () {
+                  console.log("click:" + this);
+                });
+            },
+            unselect: function (event) {
+              console.log("unselect", event);
+            },
+            drag: function (data) {
+              var ren = chart.renderer;
+              // Separator, client from service
+              if (line == "") {
+                line = ren
+                  .path(["M", data.chartX, data.chartY, "L", data.chartX, 850])
+                  .attr({
+                    "stroke-width": 2,
+                    stroke: "silver",
+                    dashstyle: "dash",
+                  })
+                  .add();
+              } else {
+                d = line.d.split(" ");
+                d[1] = data.chartX;
+                d[2] = data.chartY;
+                d[4] = data.chartX;
+                line.animate(
+                  {
+                    d: d,
+                  },
+                  500
+                );
+              }
+            },
+            drop: function (data) {
+              line.destroy();
+              line = "";
+            },
+          },
+        },
       },
     },
     accessibility: {
@@ -88,13 +135,15 @@
     },
     xAxis: {
       currentDateIndicator: true,
-      //   startOnTick: false,
-      //   endOnTick: false,
-      //   minTickInterval: 360000,
     },
     yAxis: {},
     series: [
       {
+        //   events:{
+        //   click : function(event){
+        //     console.log(',,,,,,,,,,,,,,,,,,,,,,',event.point)
+        //   }
+        // },
         name: "Offices",
         data: [
           {
@@ -211,58 +260,74 @@
         ],
       },
     ],
-    tooltip: {
-      pointFormatter: function () {
-        var point = this,
-          format = "%e. %b",
-          options = point.options,
-          completed = options.completed,
-          amount = isObject(completed) ? completed.amount : completed,
-          status = (amount || 0) * 100 + "%",
-          lines;
+    // tooltip: {
+    //   pointFormatter: function () {
+    //     var point = this,
+    //       format = "%e. %b",
+    //       options = point.options,
+    //       completed = options.completed,
+    //       amount = isObject(completed) ? completed.amount : completed,
+    //       status = (amount || 0) * 100 + "%",
+    //       lines;
 
-        lines = [
-          {
-            value: point.name,
-            style: "font-weight: bold;",
-          },
-          {
-            title: "Start",
-            value: dateFormat(format, point.start),
-          },
-          {
-            visible: !options.milestone,
-            title: "End",
-            value: dateFormat(format, point.end),
-          },
-          {
-            title: "Completed",
-            value: status,
-          },
-          {
-            title: "Owner",
-            value: options.owner || "unassigned",
-          },
-        ];
+    //     lines = [
+    //       {
+    //         value: point.name,
+    //         style: "font-weight: bold;",
+    //       },
+    //       {
+    //         title: "Start",
+    //         value: dateFormat(format, point.start),
+    //       },
+    //       {
+    //         visible: !options.milestone,
+    //         title: "End",
+    //         value: dateFormat(format, point.end),
+    //       },
+    //       {
+    //         title: "Completed",
+    //         value: status,
+    //       },
+    //       {
+    //         title: "Owner",
+    //         value: options.owner || "unassigned",
+    //       },
+    //     ];
 
-        return lines.reduce(function (str, line) {
-          var s = "",
-            style = defined(line.style) ? line.style : "font-size: 0.8em;";
-          if (line.visible !== false) {
-            s =
-              '<span style="' +
-              style +
-              '">' +
-              (defined(line.title) ? line.title + ": " : "") +
-              (defined(line.value) ? line.value : "") +
-              "</span><br/>";
-          }
-          return str + s;
-        }, "");
-      },
-    },
+    //     return lines.reduce(function (str, line) {
+    //       var s = "",
+    //         style = defined(line.style) ? line.style : "font-size: 0.8em;";
+    //       if (line.visible !== false) {
+    //         s =
+    //           '<span style="' +
+    //           style +
+    //           '">' +
+    //           (defined(line.title) ? line.title + ": " : "") +
+    //           (defined(line.value) ? line.value : "") +
+    //           "</span><br/>";
+    //       }
+    //       return str + s;
+    //     }, "");
+    //   },
+    // },
     mapNavigation: {
       enableMouseWheelZoom: true,
     },
   });
+  function KeyPress(e) {
+    var evtobj = window.event ? event : e;
+    if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
+      chart.series[0].addPoint({
+        name: "NewTask",
+        id: "NewTaskt",
+        owner: "Peter",
+        parent: "new_product",
+        start: today + 13 * day,
+        end: today + 17 * day,
+      });
+      chart.redraw();
+    }
+  }
+
+  document.onkeydown = KeyPress;
 </script>
